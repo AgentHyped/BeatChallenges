@@ -1,0 +1,18 @@
+{
+    "id": "BeatChallenges",
+    "name": "Beat Challenges",
+    "version": "1.0.0",
+    "author": "AgentHyped",
+    "description": "Bringing challenges to Beat Saber to provide a fun and more challenging way to play.",
+    "gameVersion": "1.40.4",
+    "loaderVersion": "4.3.6",
+    "dependsOn": {
+        "BeatSaberMarkupLanguage": "^1.12.5",
+        "BSIPA": "^4.3.6",
+        "BS Utils": "^1.14.2",
+        "DataPuller": "^2.1.15"
+    },
+    "links": {
+    "project-source": "https://github.com/AgentHyped/BeatChallenges"
+    }
+}
