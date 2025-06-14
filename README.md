@@ -3,7 +3,7 @@ BeatChallenges is a Beat Saber mod coded to make the game significantly harder.
 This is done by adding random minigame challenges throughout the level for players to complete/endure all while trying to survive the level.
 
 ## Setup
-The mod itself is basically plug and play, grab a copy of BeatChallenges.dll and put it into the games "Plugins" folder.
+The mod itself is basically plug and play, download a copy of BeatChallenges.dll by clicking on the version number in the releases tab, then put it into the games "Plugins" folder.
 But for any of the dependencies listed below, you must make sure you have them installed into your folder too otherwise the mod will not work.
 - [BSIPA ^4.3.6](https://github.com/nike4613/BeatSaber-IPA-Reloaded/releases/tag/4.3.6)
 - [BeatSaberMarkupLanguage ^1.12.5](https://github.com/monkeymanboy/BeatSaberMarkupLanguage/releases/tag/v1.12.5)
