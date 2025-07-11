@@ -9,134 +9,117 @@ namespace BeatChallenges.Challenges
 {
     public class SpeedUp : MonoBehaviour, IChallenge
     {
-
         public string Name => "Speed Up";
         public bool IsCompleted { get; private set; }
         public bool HasFailed { get; private set; }
         public Action OnCompleted { get; set; }
-        
-        private AudioTimeSyncController _audioTimeSync;
+
+        private AudioTimeSyncController _audioSync;
         private AudioSource _audioSource;
         private float _originalPitch;
         private float _originalTimeScale;
         private float _speedMultiplier;
-        private float _duration;
-        private object _njsProviderInstance;
-        private float _originalNjsValue;
-        private FieldInfo _jumpSpeedFieldInfo;
+        private float _countdown = 12f;
+
+        private object _njsProvider;
+        private float _originalNjs;
+        private FieldInfo _jumpSpeedField;
         private FieldInfo _timeScaleField;
-        private TextMeshProUGUI _speedUpText;
-        private bool isPaused = false;
+
+        private TextMeshProUGUI _challengeText;
+        private bool _isPaused = false;
 
         private void Awake()
         {
-            _audioTimeSync = Resources.FindObjectsOfTypeAll<AudioTimeSyncController>().FirstOrDefault();
-            if (_audioTimeSync == null)
+            _audioSync = Resources.FindObjectsOfTypeAll<AudioTimeSyncController>().FirstOrDefault();
+            if (_audioSync == null)
             {
                 Debug.LogError("[BeatChallenges] Missing AudioTimeSyncController");
                 Destroy(this);
                 return;
             }
 
-            _audioSource = _audioTimeSync.GetComponent<AudioSource>();
+            _audioSource = _audioSync.GetComponent<AudioSource>();
             _originalPitch = _audioSource.pitch;
 
             _timeScaleField = typeof(AudioTimeSyncController).GetField("_timeScale", BindingFlags.Instance | BindingFlags.NonPublic);
-            _originalTimeScale = (float)_timeScaleField.GetValue(_audioTimeSync);
+            _originalTimeScale = (float)_timeScaleField.GetValue(_audioSync);
 
-            _njsProviderInstance = Resources.FindObjectsOfTypeAll<MonoBehaviour>()
+            _njsProvider = Resources.FindObjectsOfTypeAll<MonoBehaviour>()
                 .FirstOrDefault(x => x.GetType().Name == "NoteJumpValueProvider");
 
-            if (_njsProviderInstance != null)
+            if (_njsProvider != null)
             {
-                var type = _njsProviderInstance.GetType();
-                _jumpSpeedFieldInfo = type.GetField("jumpSpeed", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-                if (_jumpSpeedFieldInfo != null)
-                    _originalNjsValue = (float)_jumpSpeedFieldInfo.GetValue(_njsProviderInstance);
+                var type = _njsProvider.GetType();
+                _jumpSpeedField = type.GetField("jumpSpeed", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (_jumpSpeedField != null)
+                    _originalNjs = (float)_jumpSpeedField.GetValue(_njsProvider);
                 else
-                    _njsProviderInstance = null;
+                    _njsProvider = null;
             }
         }
 
         public void StartChallenge()
         {
-            if (_audioTimeSync == null || _timeScaleField == null)
-                return;
+            if (_audioSync == null || _timeScaleField == null) return;
 
-            _speedMultiplier = UnityEngine.Random.Range(1.05f, 1.20f);
-            _duration = 10f;
+            _speedMultiplier = UnityEngine.Random.Range(1.15f, 1.20f);
 
             _audioSource.pitch = _speedMultiplier;
-            _timeScaleField.SetValue(_audioTimeSync, _speedMultiplier);
+            _timeScaleField.SetValue(_audioSync, _speedMultiplier);
 
-            if (_njsProviderInstance != null)
-            {
-                _jumpSpeedFieldInfo.SetValue(_njsProviderInstance, _originalNjsValue * _speedMultiplier);
-            }
+            if (_njsProvider != null)
+                _jumpSpeedField.SetValue(_njsProvider, _originalNjs * _speedMultiplier);
 
-            ShowSpeedUpUI();
-
+            ShowUI();
             StartCoroutine(SpeedUpRoutine());
         }
 
-        public void StopChallenge()
+        public void StopChallenge() => StopAllCoroutines();
+        public void PauseChallenge() => _isPaused = true;
+        public void ResumeChallenge() => _isPaused = false;
+
+        private void ShowUI()
         {
-            StopAllCoroutines();
-        }
-
-        public void PauseChallenge() => isPaused = true;
-        public void ResumeChallenge() => isPaused = false;
-
-        private void ShowSpeedUpUI()
-        {
-            Vector3 uiPosition = new Vector3(0f, 2.6f, 6f);
-
-            GameObject canvasObj = new("SpeedUpCanvas") { transform = { position = uiPosition } };
-
-            Canvas canvas = canvasObj.AddComponent<Canvas>();
+            var canvasObj = new GameObject("SpeedUpCanvas") { transform = { position = new Vector3(0f, 2.6f, 6f) } };
+            var canvas = canvasObj.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
 
-            CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-            scaler.dynamicPixelsPerUnit = 10;
-
+            canvasObj.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 10;
             canvasObj.AddComponent<GraphicRaycaster>();
 
-            GameObject textObj = new GameObject("SpeedUpText");
+            var textObj = new GameObject("SpeedUpText");
             textObj.transform.SetParent(canvasObj.transform);
 
-            _speedUpText = textObj.AddComponent<TextMeshProUGUI>();
-            _speedUpText.alignment = TextAlignmentOptions.Center;
-            _speedUpText.fontSize = 0.3f;
-            _speedUpText.rectTransform.sizeDelta = new Vector2(600, 100);
-            _speedUpText.rectTransform.localPosition = Vector3.zero;
+            _challengeText = textObj.AddComponent<TextMeshProUGUI>();
+            _challengeText.alignment = TextAlignmentOptions.Center;
+            _challengeText.fontSize = 0.3f;
+            _challengeText.rectTransform.sizeDelta = new Vector2(600, 100);
+            _challengeText.rectTransform.localPosition = Vector3.zero;
         }
 
         private IEnumerator SpeedUpRoutine()
         {
-            float timeLeft = _duration;
-
-            while (timeLeft > 0f && !HasFailed)
+            while (_countdown > 0f && !HasFailed)
             {
-                if (isPaused)
+                if (_isPaused)
                 {
                     yield return null;
                     continue;
                 }
 
-                timeLeft -= Time.deltaTime;
+                _countdown -= Time.deltaTime;
 
                 if (MapData.Instance.LevelFailed)
                 {
                     HasFailed = true;
-                    _speedUpText.text = "❌ Too fast for you? Challenge failed.";
-                    Debug.Log("[BeatChallenges] Challenge failed while completing speed up");
-
+                    _challengeText.text = "❌ Too fast for you? Challenge failed.";
+                    Debug.Log("[BeatChallenges] Challenge failed during speed up.");
                     yield return new WaitForSeconds(2);
                     break;
                 }
 
-                _speedUpText.text = $"💨 SPEED UP! + {(_speedMultiplier - 1f) * 100f:0}% FOR {timeLeft:0.0}s";
+                _challengeText.text = $"💨 SPEED UP! + {(_speedMultiplier - 1f) * 100f:0}% FOR {_countdown:0.0}s";
                 yield return null;
             }
 
@@ -144,7 +127,7 @@ namespace BeatChallenges.Challenges
             {
                 IsCompleted = true;
                 RevertSpeed();
-                _speedUpText.text = "✅ Speed survived! Nice reflexes!";
+                _challengeText.text = "✅ Speed survived! Nice reflexes!";
                 Debug.Log("[BeatChallenges] Challenge completed successfully!");
                 yield return new WaitForSeconds(2);
             }
@@ -154,19 +137,19 @@ namespace BeatChallenges.Challenges
 
         private void CleanupUI()
         {
-            if (_speedUpText != null && _speedUpText.transform != null && _speedUpText.transform.parent != null)
-                Destroy(_speedUpText.transform.parent.gameObject);
+            if (_challengeText?.transform?.parent != null)
+                Destroy(_challengeText.transform.parent.gameObject);
 
-            _speedUpText = null;
+            _challengeText = null;
         }
 
         private void RevertSpeed()
         {
             _audioSource.pitch = _originalPitch;
-            _timeScaleField.SetValue(_audioTimeSync, _originalTimeScale);
+            _timeScaleField.SetValue(_audioSync, _originalTimeScale);
 
-            if (_njsProviderInstance != null)
-                _jumpSpeedFieldInfo.SetValue(_njsProviderInstance, _originalNjsValue);
+            if (_njsProvider != null)
+                _jumpSpeedField.SetValue(_njsProvider, _originalNjs);
         }
     }
 }
