@@ -29,7 +29,7 @@ Also I know some of you love that pause button, but pausing will not work, once 
 When SUDDEN DEATH! appears prepare to hit every note for the next 12 seconds. One wrong cut or miss will instantly fail the level.
 
 ### SPEED UP!
-The whole level will speed up by a random percentage between 5% and 20% for 10 seconds.
+The whole level will speed up by a random percentage between 15% and 20% for 12 seconds.
 
 ### GHOST NOTES!
 All notes become transparent for 10 seconds, the arrows on the notes remain visible and do not disappear when coming towards the player like they would with the "ghost notes" modifier.
